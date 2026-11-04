@@ -1,0 +1,2 @@
+# FixPilot AI requires zero external pip dependencies.
+# Uses pure Python 3 standard library.

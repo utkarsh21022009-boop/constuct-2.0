@@ -1,0 +1,7 @@
+.git
+.DS_Store
+tests/
+__pycache__/
+*.pyc
+.system_generated/
+slithers.pdf

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FixPilot AI · Industrial Troubleshooting Copilot</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Top Navigation & System Status -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-group">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">FIXPILOT AI <span class="badge-team">Team Slither</span></div>
+          <div class="brand-sub">Industrial Troubleshooting · Evidence-Guided Copilot</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="system-status-pill">
+        <span class="status-dot pulse-green"></span>
+        <span class="status-label">Evidence Engine: Active</span>
+      </div>
+      <div class="system-status-pill boundary-pill">
+        <span class="status-icon">🛡️</span>
+        <span class="status-label">Human Review Gate Enforced</span>
+      </div>
+      <div class="system-status-pill boundary-pill">
+        <span class="status-icon">🔒</span>
+        <span class="status-label">No Live Controls (MVP Safe)</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button id="btn-open-benchmark" class="btn btn-outline" title="Run Slide 6 Pilot Verification Benchmark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        Pilot Benchmark
+      </button>
+      <button id="btn-open-manuals" class="btn btn-outline" title="Browse Approved OEM Manuals">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        Approved Manuals
+      </button>
+      <button id="btn-open-audit" class="btn btn-outline" title="View Technician Audit Trail">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        Audit Log (<span id="audit-count">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification Banner for Safety / Alerts -->
+  <div id="safety-alert-banner" class="alert-banner hidden">
+    <div class="alert-banner-content">
+      <span class="alert-icon">⚠️</span>
+      <div id="alert-banner-text" class="alert-text"></div>
+    </div>
+    <button id="alert-banner-close" class="btn-icon">&times;</button>
+  </div>
+
+  <!-- Main Grid Workspace -->
+  <main class="main-workspace">
+    <!-- LEFT PANEL: Intake & Simulator -->
+    <aside class="panel left-panel">
+      <!-- Problem Persona Card (From Slide 2) -->
+      <div class="card technician-context-card">
+        <div class="card-header-compact">
+          <span class="user-avatar">👨‍🔧</span>
+          <div>
+            <div class="tech-name">Arjun · Qualified Maintenance Technician</div>
+            <div class="tech-shift">Station: Machining & Packaging Cell 4 · Shift A</div>
+          </div>
+        </div>
+        <div class="tech-quote">
+          "When a machine stops, every minute of uncertainty matters. FixPilot replaces manual searching bottlenecks with evidence-backed checks."
+        </div>
+      </div>
+
+      <!-- Quick Simulated Fault Presets -->
+      <div class="card scenario-selector-card">
+        <div class="card-title-row">
+          <h3 class="card-title">Simulated Fault Presets</h3>
+          <span class="badge-mini">1-Click Test</span>
+        </div>
+        <p class="card-desc">Load realistic plant stoppage scenarios matching slide specifications:</p>
+        <div class="preset-buttons-grid">
+          <button class="preset-btn" data-scenario="SCEN-01">
+            <span class="preset-code">ALM-304</span>
+            <span class="preset-label">Haas Spindle Overcurrent</span>
+          </button>
+          <button class="preset-btn" data-scenario="SCEN-02">
+            <span class="preset-code">P-102</span>
+            <span class="preset-label">PackPro Optical Jam</span>
+          </button>
+          <button class="preset-btn" data-scenario="SCEN-03">
+            <span class="preset-code">H-405</span>
+            <span class="preset-label">HydraForce Pressure Drift</span>
+          </button>
+          <button class="preset-btn" data-scenario="SCEN-05">
+            <span class="preset-code">ALM-112</span>
+            <span class="preset-label">Haas ATC Arm Timeout</span>
+          </button>
+          <button class="preset-btn preset-danger" data-scenario="SCEN-04">
+            <span class="preset-code">SAFETY TRIP</span>
+            <span class="preset-label">Bypass Interlock Test</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Fault Intake Form -->
+      <div class="card intake-form-card">
+        <h3 class="card-title">Troubleshooting Query Intake</h3>
+        <form id="troubleshooting-form">
+          <div class="form-group">
+            <label for="machine-select">Target Machinery</label>
+            <select id="machine-select" class="form-control">
+              <option value="">All Approved Factory Machinery</option>
+              <option value="Haas VF-2">Haas VF-2 Vertical Machining Center</option>
+              <option value="PackPro FlowMaster 400">PackPro 400 Horizontal Flow Wrapper</option>
+              <option value="HydraForce HP-500">HydraForce 500-Ton Hydraulic Press</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="error-code-input">Alarm / Fault Code (Optional)</label>
+            <input type="text" id="error-code-input" class="form-control" placeholder="e.g. 304, P-102, H-405, ALM-112">
+          </div>
+
+          <div class="form-group">
+            <label for="query-input">Observed Symptoms / Physical Indicators</label>
+            <textarea id="query-input" class="form-control" rows="4" placeholder="Describe symptoms, noise, visual state, or paste the error code displayed on the HMI..." required></textarea>
+          </div>
+
+          <button type="submit" id="btn-diagnose" class="btn btn-primary btn-block">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Retrieve Evidence & Propose Plan
+          </button>
+        </form>
+      </div>
+
+      <!-- Safety Guardrails Active Card (Slide 4) -->
+      <div class="card guardrails-monitor-card">
+        <div class="card-title-row">
+          <h4 class="card-title">Safety Guardrails Status</h4>
+          <span class="badge-safe">ENFORCED</span>
+        </div>
+        <div class="guardrail-item">
+          <span class="check-icon">✓</span>
+          <div>
+            <strong>No Unsupported Guesses:</strong> Strict citation requirement; facts separated from hypotheses.
+          </div>
+        </div>
+        <div class="guardrail-item">
+          <span class="check-icon">✓</span>
+          <div>
+            <strong>Interlock Protection:</strong> Auto-trips on bypass/tamper commands (OSHA 1910.147).
+          </div>
+        </div>
+        <div class="guardrail-item">
+          <span class="check-icon">✓</span>
+          <div>
+            <strong>Zero Energy Protocol:</strong> Mandates LOTO & capacitor/accumulator bleed-off.
+          </div>
+        </div>
+        <div class="guardrail-item">
+          <span class="check-icon">✓</span>
+          <div>
+            <strong>No Live Controls:</strong> Advisory copilot only; live machine actuation blocked.
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT PANEL: Diagnostic Plan & Review Gate (Slide 3 & 4) -->
+    <section class="panel right-panel">
+      <!-- Loading State -->
+      <div id="plan-loading" class="state-container hidden">
+        <div class="spinner"></div>
+        <div class="loading-title">Parsing Query & Retrieving OEM Documentation...</div>
+        <div class="loading-sub">Searching indexed manuals · Synthesizing grounded hypotheses · Checking safety interlocks</div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="plan-empty" class="state-container">
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <h3>Ready for Troubleshooting</h3>
+        <p>Select a simulated fault scenario on the left, or enter an error code and symptoms to generate an evidence-linked diagnostic workflow.</p>
+        <div class="empty-steps">
+          <div class="step-badge">1. Input Fault</div>
+          <div class="step-arrow">→</div>
+          <div class="step-badge">2. Retrieve Evidence</div>
+          <div class="step-arrow">→</div>
+          <div class="step-badge">3. Review Gate</div>
+          <div class="step-arrow">→</div>
+          <div class="step-badge">4. Log Resolution</div>
+        </div>
+      </div>
+
+      <!-- Active Diagnostic Plan Content -->
+      <div id="plan-content" class="plan-display hidden">
+        <!-- Diagnostic Header & Uncertainty Pill -->
+        <div class="plan-header-card">
+          <div class="plan-header-top">
+            <div>
+              <div class="plan-id-text" id="plan-id-label">PLAN-8921</div>
+              <h2 class="plan-title" id="plan-machine-title">Haas VF-2 · Fault Diagnostic</h2>
+              <div class="plan-query-text" id="plan-query-display">Spindle overcurrent trip during roughing</div>
+            </div>
+            <div class="plan-status-tags">
+              <span id="badge-uncertainty" class="badge-uncertainty">HIGH CONFIDENCE</span>
+              <div class="confidence-container">
+                <span class="confidence-label">Confidence:</span>
+                <span id="confidence-percentage" class="confidence-val">92%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- LOTO / Safety Advisory if applicable -->
+          <div id="plan-loto-advisory" class="loto-banner hidden">
+            <span class="loto-tag">LOTO REQUIRED</span>
+            <span id="loto-text" class="loto-message">Zero-energy verification mandatory before servicing.</span>
+          </div>
+        </div>
+
+        <!-- Section 1: Facts vs Hypotheses (Slide 3 & 4) -->
+        <div class="plan-split-grid">
+          <!-- VERIFIED OEM FACTS -->
+          <div class="fact-box">
+            <div class="box-header">
+              <span class="box-icon green">📜</span>
+              <h4 class="box-title">OEM Documentation Facts</h4>
+              <span class="badge-grounded">Direct Manual Grounding</span>
+            </div>
+            <p class="box-subtitle">Explicit statements verified from approved factory manuals:</p>
+            <ul id="facts-list" class="grounded-list">
+              <!-- Rendered dynamically -->
+            </ul>
+          </div>
+
+          <!-- RANKED HYPOTHESES -->
+          <div class="hypothesis-box">
+            <div class="box-header">
+              <span class="box-icon purple">💡</span>
+              <h4 class="box-title">Ranked Root Cause Hypotheses</h4>
+              <span class="badge-probabilistic">Facts Stay Separate from Hypotheses</span>
+            </div>
+            <p class="box-subtitle">Plausible causes deduced from symptoms for technician review:</p>
+            <div id="hypotheses-list" class="hypothesis-cards">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Step-by-Step Recommended Checks (Slide 3) -->
+        <div class="checks-container">
+          <div class="checks-header-row">
+            <div>
+              <h3 class="checks-title">Recommended Checks & Procedures</h3>
+              <p class="checks-subtitle">Ordered step-by-step diagnostic actions with cited manual references:</p>
+            </div>
+            <span class="checks-count" id="checks-count-badge">3 Steps</span>
+          </div>
+
+          <div id="recommended-checks-list" class="checks-list">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Section 3: Ranked Evidence Citations (Slide 3 Mockup) -->
+        <div class="evidence-shelf">
+          <div class="shelf-header">
+            <span class="shelf-icon">🔍</span>
+            <h4 class="shelf-title">Ranked Evidence Passages (Approved Equipment Docs)</h4>
+          </div>
+          <div id="citations-list" class="citations-grid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Section 4: TECHNICIAN REVIEW GATE (Slide 3 & 4 Core Feature) -->
+        <div class="review-gate-card">
+          <div class="review-gate-header">
+            <div class="gate-icon-group">
+              <div class="gate-icon">⚖️</div>
+              <div>
+                <h3 class="gate-title">Technician Review Gate</h3>
+                <div class="gate-subtitle">"The assistant proposes, a qualified technician decides."</div>
+              </div>
+            </div>
+            <span id="review-status-badge" class="badge-gate-pending">AWAITING TECHNICIAN SIGN-OFF</span>
+          </div>
+
+          <div class="gate-body">
+            <div class="gate-inputs-row">
+              <div class="gate-input-group">
+                <label for="tech-signer">Certified Technician</label>
+                <input type="text" id="tech-signer" class="form-control" value="Arjun (Maintenance Tech #4192)">
+              </div>
+              <div class="gate-input-group flex-2">
+                <label for="tech-decision-notes">Technician Physical Findings & Log Notes</label>
+                <input type="text" id="tech-decision-notes" class="form-control" placeholder="e.g. Performed Step 1 hand spin check; spindle rotated smoothly. Proceeded to megger test...">
+              </div>
+            </div>
+
+            <div class="gate-actions-row">
+              <button id="btn-approve-check" class="btn btn-success">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Verify & Execute Check 1
+              </button>
+              <button id="btn-mark-inconclusive" class="btn btn-warning">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                Mark Inconclusive / Request Next Check
+              </button>
+              <button id="btn-escalate-oem" class="btn btn-danger">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                Escalate to OEM / Senior Engineer
+              </button>
+              <button id="btn-resolve-fault" class="btn btn-accent">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                Sign Off & Return to Production
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: Slide 6 Pilot Verification Benchmark -->
+  <div id="modal-benchmark" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">FixPilot Pilot Verification Benchmark</h2>
+          <div class="modal-sub">Validation against the 4 pilot performance measures (Deck Slide 6)</div>
+        </div>
+        <button id="btn-close-benchmark" class="btn-icon">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="benchmark-summary-banner">
+          <div class="bench-stat-col">
+            <span class="stat-number text-green" id="stat-citations">100%</span>
+            <span class="stat-desc">Citation Support</span>
+            <span class="stat-target">Target: 100%</span>
+          </div>
+          <div class="bench-stat-col">
+            <span class="stat-number text-blue" id="stat-retrieval">100%</span>
+            <span class="stat-desc">Retrieval Correctness</span>
+            <span class="stat-target">Target: >85%</span>
+          </div>
+          <div class="bench-stat-col">
+            <span class="stat-number text-yellow" id="stat-time">34.5 min</span>
+            <span class="stat-desc">Avg Time Saved / Fault</span>
+            <span class="stat-target">vs 35m baseline</span>
+          </div>
+          <div class="bench-stat-col">
+            <span class="stat-number text-purple" id="stat-escalation">100%</span>
+            <span class="stat-desc">Safety Interlock Catch</span>
+            <span class="stat-target">Target: 100%</span>
+          </div>
+        </div>
+
+        <div class="benchmark-table-wrapper">
+          <table class="benchmark-table">
+            <thead>
+              <tr>
+                <th>Scenario ID</th>
+                <th>Machine & Fault</th>
+                <th>Retrieval Match</th>
+                <th>Citations</th>
+                <th>Safety Interlock Guard</th>
+                <th>Response Time</th>
+              </tr>
+            </thead>
+            <tbody id="benchmark-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-rerun-benchmark" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          Re-Run Automated Benchmark
+        </button>
+        <button id="btn-dismiss-benchmark" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Approved OEM Manuals Browser -->
+  <div id="modal-manuals" class="modal-backdrop hidden">
+    <div class="modal-card modal-wide">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Approved Equipment Documentation Repository</h2>
+          <div class="modal-sub">Verified OEM service manuals ingested and indexed for evidence retrieval</div>
+        </div>
+        <button id="btn-close-manuals" class="btn-icon">&times;</button>
+      </div>
+
+      <div class="modal-body modal-split">
+        <div class="manuals-sidebar" id="manuals-tree">
+          <!-- Manuals list populated dynamically -->
+        </div>
+        <div class="manuals-content" id="manual-content-view">
+          <div class="manual-placeholder">Select a manual or section to inspect approved passages.</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-dismiss-manuals" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Audit Trail & Maintenance Log -->
+  <div id="modal-audit" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Plant Maintenance Audit Trail</h2>
+          <div class="modal-sub">Qualified technician review decisions and resolution log</div>
+        </div>
+        <button id="btn-close-audit" class="btn-icon">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="audit-summary-row" id="audit-stats-summary">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="audit-list" id="audit-list-container">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-dismiss-audit" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVIDENCE INSPECTOR DRAWER -->
+  <div id="drawer-evidence" class="drawer hidden">
+    <div class="drawer-header">
+      <div>
+        <h3 class="drawer-title" id="drawer-citation-title">Passage Reference</h3>
+        <div class="drawer-sub" id="drawer-citation-source">Manual ID · Section</div>
+      </div>
+      <button id="btn-close-drawer" class="btn-icon">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-highlight-box" id="drawer-citation-content"></div>
+      <div class="drawer-meta" id="drawer-citation-meta"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

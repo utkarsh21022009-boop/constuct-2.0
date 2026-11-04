@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# macOS
+.DS_Store
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# FixPilot local data
+fixpilot/data/audit_log.json
